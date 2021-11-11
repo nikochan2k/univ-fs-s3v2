@@ -3,14 +3,13 @@ import {
   Converter,
   Data,
   isBlob,
+  isBrowser,
   isBuffer,
+  isNode,
   isReadable,
-  isReadableStream,
-  isReadableStreamData,
 } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
-import { isBrowser, isNode } from "univ-conv";
 
 export class S3File extends AbstractFile {
   constructor(private s3fs: S3FileSystem, path: string) {
@@ -61,25 +60,30 @@ export class S3File extends AbstractFile {
       }
       let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
       if (head) {
-        if (isReadable(head) || isReadable(data)) {
+        if (isNode && (isReadable(head) || isReadable(data))) {
           body = await converter.merge([head, data], "Readable");
-        } else if (isReadableStream(head) || isReadable(data)) {
-          body = await converter.merge([head, data], "ReadableStream");
+        } else if (isBrowser && (isBlob(head) || isBlob(data))) {
+          body = await converter.merge([head, data], "Blob");
         } else if (typeof head === "string" && typeof data === "string") {
           body = await converter.merge([head, data], "UTF8");
+        } else if (isNode) {
+          body = await converter.merge([head, data], "Buffer");
         } else {
           body = await converter.merge([head, data], "Uint8Array");
         }
       } else {
         if (
           typeof data === "string" ||
-          isBlob(data) ||
-          isBuffer(data) ||
-          isReadableStreamData(data)
+          (isBrowser && isBlob(data)) ||
+          (isNode && (isReadable(data) || isBuffer(data)))
         ) {
           body = data;
         } else {
-          body = await converter.toUint8Array(data);
+          if (isNode) {
+            body = await converter.toBuffer(data);
+          } else {
+            body = await converter.toUint8Array(data);
+          }
         }
       }
 
@@ -90,26 +94,22 @@ export class S3File extends AbstractFile {
 
       const client = await s3fs._getClient();
       const params = s3fs._createParams(path, false);
-      if (isNode) {
-        if (isReadableStreamData(body)) {
-          const readable = converter.toReadable(body);
-          client.upload({ ...params, Body: readable, Metadata: metadata });
-          return;
-        }
-      }
-      let buffer: Blob | Uint8Array;
-      if (isBrowser) {
-        buffer = await converter.toBlob(body);
+      if (isNode && isReadable(body)) {
+        const readable = converter.toReadable(body);
+        await client
+          .upload({ ...params, Body: readable, Metadata: metadata })
+          .promise();
       } else {
-        buffer = await converter.toUint8Array(body);
+        const length = await converter.getSize(body);
+        await client
+          .putObject({
+            ...params,
+            Body: body,
+            ContentLength: length,
+            Metadata: metadata,
+          })
+          .promise();
       }
-      const length = await converter.getSize(buffer);
-      client.putObject({
-        ...params,
-        Body: buffer,
-        ContentLength: length,
-        Metadata: metadata,
-      });
     } catch (e) {
       throw s3fs._error(path, e, true);
     }
