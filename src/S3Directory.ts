@@ -31,30 +31,11 @@ export class S3Directory extends AbstractDirectory {
   }
 
   public async _mkcol(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-    try {
-      const client = await s3fs._getClient();
-      await client
-        .putObject({
-          ...s3fs._createParams(path, true),
-          Body: "",
-        })
-        .promise();
-    } catch (e) {
-      throw s3fs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 
   public async _rmdir(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-    try {
-      const client = await s3fs._getClient();
-      await client.deleteObject(s3fs._createParams(path, true)).promise();
-    } catch (e) {
-      throw s3fs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 
   private async _listObjects(params: ListObjectsV2Request, objects: string[]) {
