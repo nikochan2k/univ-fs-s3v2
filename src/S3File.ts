@@ -1,14 +1,12 @@
 import { Readable } from "stream";
 import {
-  Converter,
+  blobConverter,
   Data,
-  isBlob,
-  isBrowser,
-  isBuffer,
-  isNode,
-  isReadable,
+  hasBuffer,
+  readableConverter,
+  readableStreamConverter,
 } from "univ-conv";
-import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
+import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3File extends AbstractFile {
@@ -28,8 +26,8 @@ export class S3File extends AbstractFile {
     }
   }
 
-  // eslint-disable-next-line
-  protected async _load(_stats: Stats, _options: OpenOptions): Promise<Data> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected async _load(_1: Stats, _2: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
 
@@ -51,39 +49,47 @@ export class S3File extends AbstractFile {
   ): Promise<void> {
     const s3fs = this.s3fs;
     const path = this.path;
-    const converter = new Converter(options);
+    const converter = this._getConverter();
 
     try {
       let head: Data | undefined;
       if (options.append && stats) {
         head = await this._load(stats, options);
       }
-      let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
+      let body: Readable | ReadableStream<unknown> | Blob | Uint8Array;
+      /* eslint-disable */
       if (head) {
-        if (isNode && (isReadable(head) || isReadable(data))) {
-          body = await converter.merge([head, data], "Readable");
-        } else if (isBrowser && (isBlob(head) || isBlob(data))) {
-          body = await converter.merge([head, data], "Blob");
-        } else if (typeof head === "string" && typeof data === "string") {
-          body = await converter.merge([head, data], "UTF8");
-        } else if (isNode) {
-          body = await converter.merge([head, data], "Buffer");
+        if (
+          readableConverter().typeEquals(head) ||
+          readableConverter().typeEquals(data)
+        ) {
+          body = await converter.merge([head, data], "readable", options);
+        } else if (
+          readableStreamConverter().typeEquals(head) ||
+          readableStreamConverter().typeEquals(data)
+        ) {
+          body = await converter.merge([head, data], "readablestream", options);
+        } else if (
+          blobConverter().typeEquals(head) ||
+          blobConverter().typeEquals(data)
+        ) {
+          body = await converter.merge([head, data], "blob", options);
+        } else if (hasBuffer) {
+          body = await converter.merge([head, data], "buffer", options);
         } else {
-          body = await converter.merge([head, data], "Uint8Array");
+          body = await converter.merge([head, data], "uint8array", options);
         }
       } else {
-        if (
-          typeof data === "string" ||
-          (isBrowser && isBlob(data)) ||
-          (isNode && (isReadable(data) || isBuffer(data)))
-        ) {
-          body = data;
+        if (readableConverter().typeEquals(data)) {
+          body = await converter.convert(data, "readable", options);
+        } else if (readableStreamConverter().typeEquals(data)) {
+          body = await converter.convert(data, "readablestream", options);
+        } else if (blobConverter().typeEquals(data)) {
+          body = await converter.convert(data, "blob", options);
+        } else if (hasBuffer) {
+          body = await converter.toBuffer(data);
         } else {
-          if (isNode) {
-            body = await converter.toBuffer(data);
-          } else {
-            body = await converter.toUint8Array(data);
-          }
+          body = await converter.toUint8Array(data);
         }
       }
 
@@ -94,7 +100,10 @@ export class S3File extends AbstractFile {
 
       const client = await s3fs._getClient();
       const params = s3fs._createParams(path, false);
-      if (isNode && isReadable(body)) {
+      if (
+        readableConverter().typeEquals(body) ||
+        readableStreamConverter().typeEquals(body)
+      ) {
         const readable = converter.toReadable(body);
         await client
           .upload({ ...params, Body: readable, Metadata: metadata })
