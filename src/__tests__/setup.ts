@@ -1,4 +1,4 @@
-import { NotFoundError } from "univ-fs";
+import { ErrorLike, NotFoundError } from "univ-fs";
 import { S3FileSystem } from "../S3FileSystem";
 import config from "./secret.json";
 
@@ -10,7 +10,7 @@ export const setup = async () => {
     await root.rm({ force: true, recursive: true, ignoreHook: true });
     await root.mkdir({ force: true, recursive: false, ignoreHook: true });
   } catch (e) {
-    if (e.name !== NotFoundError.name) {
+    if ((e as ErrorLike).name !== NotFoundError.name) {
       throw e;
     }
   }

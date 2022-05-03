@@ -1,26 +1,20 @@
 module.exports = {
-  mode: "development",
+  mode: "production",
   entry: {
-    "basic.spec": "./src/__tests__/basic.spec.ts",
-    "head.spec": "./src/__tests__/head.spec.ts",
-    "list.spec": "./src/__tests__/list.spec.ts",
+    index: "./lib/index.js",
   },
   output: {
-    filename: "[name].js",
+    filename: "univ-conv.js",
     path: __dirname + "/dist",
   },
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        use: "ts-loader",
-      },
-    ],
-  },
   resolve: {
-    extensions: [".ts", ".js"],
+    extensions: [".js"],
     fallback: {
       stream: false,
+      fs: false,
+      os: false,
+      path: false,
+      url: false,
       util: false,
     },
   },
