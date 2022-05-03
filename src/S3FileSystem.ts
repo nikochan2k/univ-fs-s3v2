@@ -19,7 +19,6 @@ import {
   NotReadableError,
   NotSupportedError,
   PatchOptions,
-  Props,
   Stats,
   URLOptions,
 } from "univ-fs";
@@ -69,7 +68,7 @@ export class S3FileSystem extends AbstractFileSystem {
     this.canCreateDirectory = options?.canCreateDirectory ?? true;
   }
 
-  public _createMetadata(props: Props) {
+  public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
       if (0 <= ["size", "etag", "modified"].indexOf(key)) {
@@ -92,11 +91,11 @@ export class S3FileSystem extends AbstractFileSystem {
     const err = e as AWSError;
     let name: string;
     if (err.statusCode === 404) {
-      name = NotFoundError.name;
+      name = NotFoundError.name as string;
     } else if (write) {
-      name = NoModificationAllowedError.name;
+      name = NoModificationAllowedError.name as string;
     } else {
-      name = NotReadableError.name;
+      name = NotReadableError.name as string;
     }
     return createError({
       name,
@@ -235,7 +234,8 @@ export class S3FileSystem extends AbstractFileSystem {
 
   public async _patch(
     path: string,
-    props: Props,
+    _stats: Stats, // eslint-disable-line
+    props: Stats,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
     const key = this._getKey(path, props["size"] == null);
@@ -290,6 +290,18 @@ export class S3FileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
+  }
+
+  public canPatchAccessed(): boolean {
+    return false;
+  }
+
+  public canPatchCreated(): boolean {
+    return false;
+  }
+
+  public canPatchModified(): boolean {
+    return false;
   }
 
   public supportDirectory(): boolean {
