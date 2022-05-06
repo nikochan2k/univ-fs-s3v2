@@ -87,78 +87,15 @@ export class S3FileSystem extends AbstractFileSystem {
     };
   }
 
-  public _error(path: string, e: unknown, write: boolean) {
-    const err = e as AWSError;
-    let name: string;
-    if (err.statusCode === 404) {
-      name = NotFoundError.name as string;
-    } else if (write) {
-      name = NoModificationAllowedError.name as string;
-    } else {
-      name = NotReadableError.name as string;
-    }
-    return createError({
-      name,
-      repository: this.repository,
-      path,
-      e: e as ErrorLike,
-    });
-  }
-
-  public async _getClient() {
-    if (this.client) {
-      return this.client;
-    }
-
-    this.client = new S3({ ...this.config });
-    if (!this.supportDirectory()) {
-      return this.client;
-    }
-
-    try {
-      await this.client.headObject(this._createParams("/", true)).promise();
-      return this.client;
-    } catch (e: unknown) {
-      const err = this._error("/", e, false);
-      if (err.name !== NotFoundError.name) {
-        throw err;
-      }
-    }
-    try {
-      await this.client
-        .putObject({
-          ...this._createParams("/", true),
-          Body: "",
-        })
-        .promise();
-      return this.client;
-    } catch (e) {
-      throw this._error("/", e, true);
-    }
-  }
-
-  public async _getDirectory(path: string): Promise<AbstractDirectory> {
+  public async _doGetDirectory(path: string): Promise<AbstractDirectory> {
     return Promise.resolve(new S3Directory(this, path));
   }
 
-  public async _getFile(path: string): Promise<AbstractFile> {
+  public async _doGetFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new S3File(this, path));
   }
 
-  public _getKey(path: string, isDirectory: boolean) {
-    let key: string;
-    if (!path || path === "/") {
-      key = this.repository;
-    } else {
-      key = joinPaths(this.repository, path, false);
-    }
-    if (isDirectory) {
-      key += "/";
-    }
-    return key;
-  }
-
-  public async _head(path: string, options?: HeadOptions): Promise<Stats> {
+  public async _doHead(path: string, options?: HeadOptions): Promise<Stats> {
     const client = await this._getClient();
     if (!this.supportDirectory()) {
       try {
@@ -232,7 +169,7 @@ export class S3FileSystem extends AbstractFileSystem {
     throw this._error(path, dirListReason, false);
   }
 
-  public async _patch(
+  public async _doPatch(
     path: string,
     _stats: Stats, // eslint-disable-line
     props: Stats,
@@ -254,7 +191,7 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _toURL(
+  public async _doToURL(
     path: string,
     isDirectory: boolean,
     options?: URLOptions
@@ -290,6 +227,69 @@ export class S3FileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
+  }
+
+  public _error(path: string, e: unknown, write: boolean) {
+    const err = e as AWSError;
+    let name: string;
+    if (err.statusCode === 404) {
+      name = NotFoundError.name;
+    } else if (write) {
+      name = NoModificationAllowedError.name;
+    } else {
+      name = NotReadableError.name;
+    }
+    return createError({
+      name,
+      repository: this.repository,
+      path,
+      e: e as ErrorLike,
+    });
+  }
+
+  public async _getClient() {
+    if (this.client) {
+      return this.client;
+    }
+
+    this.client = new S3({ ...this.config });
+    if (!this.supportDirectory()) {
+      return this.client;
+    }
+
+    try {
+      await this.client.headObject(this._createParams("/", true)).promise();
+      return this.client;
+    } catch (e: unknown) {
+      const err = this._error("/", e, false);
+      if (err.name !== NotFoundError.name) {
+        throw err;
+      }
+    }
+    try {
+      await this.client
+        .putObject({
+          ...this._createParams("/", true),
+          Body: "",
+        })
+        .promise();
+      return this.client;
+    } catch (e) {
+      throw this._error("/", e, true);
+    }
+  }
+
+  public _getKey(path: string, isDirectory: boolean) {
+    let key: string;
+    if (!path || path === "/") {
+      key = this.repository;
+    } else {
+      key = joinPaths(this.repository, path, false);
+    }
+    if (isDirectory) {
+      key += "/";
+    }
+    return key;
   }
 
   public canPatchAccessed(): boolean {

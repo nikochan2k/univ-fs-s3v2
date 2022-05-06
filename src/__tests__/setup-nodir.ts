@@ -1,4 +1,4 @@
-import { S3 } from "aws-sdk";
+import { OnExists, OnNoParent, OnNotExist } from "univ-fs";
 import { S3FileSystem } from "../S3FileSystem";
 import config from "./secret.json";
 
@@ -7,14 +7,15 @@ export const fs = new S3FileSystem("univ-fs-test", "test-nodir", config, {
 });
 
 export const setup = async () => {
-  const client = new S3(config);
-  const data = await client.listObjectsV2({ Bucket: "univ-fs-test" }).promise();
-  for (const content of data.Contents || []) {
-    await client
-      .deleteObject({
-        Bucket: "univ-fs-test",
-        Key: content.Key as string,
-      })
-      .promise();
-  }
+  const root = await fs.getDirectory("/");
+  await root.rm({
+    onNotExist: OnNotExist.Ignore,
+    recursive: true,
+    ignoreHook: true,
+  });
+  await root.mkdir({
+    onExists: OnExists.Ignore,
+    onNoParent: OnNoParent.Error,
+    ignoreHook: true,
+  });
 };

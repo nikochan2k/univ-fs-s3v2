@@ -13,7 +13,7 @@ export class S3Directory extends AbstractDirectory {
     super(s3fs, path);
   }
 
-  public async _list(): Promise<Item[]> {
+  public async _doList(): Promise<Item[]> {
     const s3FS = this.s3fs;
     const path = this.path;
     const items: Item[] = [];
@@ -36,7 +36,7 @@ export class S3Directory extends AbstractDirectory {
     }
   }
 
-  public async _mkcol(): Promise<void> {
+  public async _doMkcol(): Promise<void> {
     const s3fs = this.s3fs;
     const path = this.path;
     const params = s3fs._createParams(path, true);
@@ -55,7 +55,7 @@ export class S3Directory extends AbstractDirectory {
     }
   }
 
-  public async _rmdir(): Promise<void> {
+  public async _doRmdir(): Promise<void> {
     const s3fs = this.s3fs;
     const path = this.path;
 

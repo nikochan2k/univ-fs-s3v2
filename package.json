@@ -1,6 +1,6 @@
 {
   "name": "univ-fs-s3v2",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "The universal Filesystem API for S3 SDK v2",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -62,9 +62,9 @@
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {
-    "aws-sdk": "^2.1126.0",
+    "aws-sdk": "^2.1129.0",
     "tslib": "^2.4.0",
-    "univ-fs": "^0.7.19"
+    "univ-fs": "^0.8.9"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

@@ -1,17 +1,19 @@
-import { ErrorLike, NotFoundError } from "univ-fs";
+import { OnExists, OnNoParent, OnNotExist } from "univ-fs";
 import { S3FileSystem } from "../S3FileSystem";
 import config from "./secret.json";
 
 export const fs = new S3FileSystem("univ-fs-test", "test", config);
 
 export const setup = async () => {
-  try {
-    const root = await fs._getDirectory("/");
-    await root.rm({ force: true, recursive: true, ignoreHook: true });
-    await root.mkdir({ force: true, recursive: false, ignoreHook: true });
-  } catch (e) {
-    if ((e as ErrorLike).name !== NotFoundError.name) {
-      throw e;
-    }
-  }
+  const root = await fs.getDirectory("/");
+  await root.rm({
+    onNotExist: OnNotExist.Ignore,
+    recursive: true,
+    ignoreHook: true,
+  });
+  await root.mkdir({
+    onExists: OnExists.Ignore,
+    onNoParent: OnNoParent.Error,
+    ignoreHook: true,
+  });
 };
