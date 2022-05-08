@@ -55,7 +55,7 @@ export class S3Directory extends AbstractDirectory {
     }
   }
 
-  public async _doRmdir(): Promise<void> {
+  public async _doDelete(): Promise<void> {
     const s3fs = this.s3fs;
     const path = this.path;
 

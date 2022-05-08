@@ -87,12 +87,12 @@ export class S3FileSystem extends AbstractFileSystem {
     };
   }
 
-  public async _doGetDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new S3Directory(this, path));
+  public _doGetDirectory(path: string): AbstractDirectory {
+    return new S3Directory(this, path);
   }
 
-  public async _doGetFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new S3File(this, path));
+  public _doGetFile(path: string): AbstractFile {
+    return new S3File(this, path);
   }
 
   public async _doHead(path: string, options?: HeadOptions): Promise<Stats> {
@@ -191,17 +191,17 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _doToURL(
+  public async _doGetURL(
     path: string,
     isDirectory: boolean,
     options?: URLOptions
   ): Promise<string> {
     try {
-      options = { urlType: "GET", expires: 86400, ...options };
+      options = { method: "GET", expires: 86400, ...options };
       const client = await this._getClient();
       const params = this._createParams(path, isDirectory);
       let url: string;
-      switch (options.urlType) {
+      switch (options.method) {
         case "GET": {
           url = client.getSignedUrl("getObject", { ...params });
           break;
@@ -220,7 +220,7 @@ export class S3FileSystem extends AbstractFileSystem {
             name: NotSupportedError.name,
             repository: this.repository,
             path,
-            e: { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
+            e: { message: `"${options.method}" is not supported` }, // eslint-disable-line
           });
       }
       return url;

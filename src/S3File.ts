@@ -6,7 +6,7 @@ import {
   readableConverter,
   readableStreamConverter,
 } from "univ-conv";
-import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
+import { AbstractFile, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3File extends AbstractFile {
@@ -14,8 +14,19 @@ export class S3File extends AbstractFile {
     super(s3fs, path);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async _doRead(_1: Stats, _2: ReadOptions): Promise<Data> {
+  public async _doDelete(): Promise<void> {
+    const s3fs = this.s3fs;
+    const path = this.path;
+
+    try {
+      const client = await s3fs._getClient();
+      await client.deleteObject(s3fs._createParams(path, false)).promise();
+    } catch (e) {
+      throw s3fs._error(path, e, true);
+    }
+  }
+
+  public async _doRead(): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
 
@@ -27,18 +38,6 @@ export class S3File extends AbstractFile {
       return (obj.Body as Data) || "";
     } catch (e) {
       throw s3fs._error(path, e, false);
-    }
-  }
-
-  public async _doRm(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-
-    try {
-      const client = await s3fs._getClient();
-      await client.deleteObject(s3fs._createParams(path, false)).promise();
-    } catch (e) {
-      throw s3fs._error(path, e, true);
     }
   }
 
