@@ -64,7 +64,7 @@
   "dependencies": {
     "aws-sdk": "^2.1130.0",
     "tslib": "^2.4.0",
-    "univ-fs": "^0.8.18"
+    "univ-fs": "^0.8.19"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
