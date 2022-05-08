@@ -18,7 +18,6 @@ import {
   NotFoundError,
   NotReadableError,
   NotSupportedError,
-  PatchOptions,
   Stats,
   URLOptions,
 } from "univ-fs";
@@ -171,9 +170,8 @@ export class S3FileSystem extends AbstractFileSystem {
 
   public async _doPatch(
     path: string,
-    _stats: Stats, // eslint-disable-line
-    props: Stats,
-    _options: PatchOptions // eslint-disable-line
+    _stats: Stats,
+    props: Stats
   ): Promise<void> {
     const key = this._getKey(path, props["size"] == null);
     try {
