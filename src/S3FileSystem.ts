@@ -194,7 +194,7 @@ export class S3FileSystem extends AbstractFileSystem {
   public async _doGetURL(
     path: string,
     isDirectory: boolean,
-    options?: URLOptions
+    options: URLOptions
   ): Promise<string> {
     try {
       options = { method: "GET", expires: SECONDS_OF_DAY, ...options };
