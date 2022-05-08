@@ -53,6 +53,8 @@ if (!Promise.allSettled) {
   /* eslint-enable */
 }
 
+const SECONDS_OF_DAY = 24 * 60 * 60;
+
 export class S3FileSystem extends AbstractFileSystem {
   private client?: S3;
 
@@ -71,9 +73,7 @@ export class S3FileSystem extends AbstractFileSystem {
   public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
-      if (0 <= ["size", "etag", "modified"].indexOf(key)) {
-        continue;
-      }
+      if (!value) continue;
       metadata[key] = "" + value; // eslint-disable-line
     }
     return metadata;
@@ -110,8 +110,8 @@ export class S3FileSystem extends AbstractFileSystem {
 
     options = { ...options };
     const type = options.type;
-    const isFile = !type || type === EntryType.File; // eslint-disable-line
-    const isDirectory = !type || type === EntryType.Directory; // eslint-disable-line
+    const isFile = !type || type === EntryType.File;
+    const isDirectory = !type || type === EntryType.Directory;
     let fileHead: Promise<HeadObjectOutput>;
     if (isFile) {
       fileHead = client.headObject(this._createParams(path, false)).promise();
@@ -197,7 +197,7 @@ export class S3FileSystem extends AbstractFileSystem {
     options?: URLOptions
   ): Promise<string> {
     try {
-      options = { method: "GET", expires: 86400, ...options };
+      options = { method: "GET", expires: SECONDS_OF_DAY, ...options };
       const client = await this._getClient();
       const params = this._createParams(path, isDirectory);
       let url: string;
